@@ -1,22 +1,8 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- */
-
 package soa.soagame;
 
-/**
- *
- * @author Student's Account
- */
-
-
-import java.io.FileWriter;
-import java.io.FileReader;
-import java.io.IOException;
 import java.util.*;
 
 public class Soagame {
-    // --- Game Data for Dungeons and Shop ---
     private static final Dungeon[] DUNGEONS = {
         new Dungeon("E", 1, "Goblin", 80, 8, 14, 4, 30, 10, 6),
         new Dungeon("D", 3, "Wolf", 120, 12, 16, 6, 40, 16, 10),
@@ -25,6 +11,7 @@ public class Soagame {
         new Dungeon("A", 10, "Ogre", 300, 26, 34, 16, 100, 50, 40),
         new Dungeon("S", 15, "Dragon", 500, 40, 55, 26, 150, 100, 80)
     };
+
     private static final Item[] SHOP_ITEMS = {
         new Item("HP Potion", Item.Type.HP_POTION, 30, 10, Item.Rarity.COMMON, "Restores a small amount of HP."),
         new Item("Mana Potion", Item.Type.MANA_POTION, 20, 12, Item.Rarity.COMMON, "Restores a small amount of Mana."),
@@ -34,7 +21,7 @@ public class Soagame {
         new Item("Helmet", Item.Type.HELMET, 1, 60, Item.Rarity.RARE, "A sturdy helmet, increases defense."),
         new Item("Armor", Item.Type.ARMOR, 2, 80, Item.Rarity.RARE, "Well-crafted armor, increases defense.")
     };
-    private static final Item[] ITEM_DROPS = SHOP_ITEMS; // All shop items may drop in battle
+    private static final Item[] ITEM_DROPS = SHOP_ITEMS;
     private static final Map<Item.Rarity, Double> RARITY_DROP_CHANCE = Map.of(
         Item.Rarity.COMMON, 0.30,
         Item.Rarity.UNCOMMON, 0.15,
@@ -56,61 +43,73 @@ public class Soagame {
     }
 
     public void run() {
-        System.out.println("=== Sword Art Dungeons ===");
-        System.out.println("1. New Game\n2. Load Game");
+        story.intro();
+        System.out.println("\n[1] New Game\n[2] Load Game");
         String choice = sc.nextLine().trim();
         if ("2".equals(choice)) {
             if (!loadProgress()) startNewGame();
         } else {
             startNewGame();
         }
-        story.intro();
+        story.afterIntro(player.name, player.playerClass);
 
         while (true) {
             player.restore();
             displayPlayerStatus();
-            System.out.println("\nMain Menu: 1.Dungeon 2.Inventory 3.Shop 4.Save 5.Quit");
+            System.out.println("\n=== Main Menu ===");
+            System.out.println("[1] Dungeon");
+            System.out.println("[2] Inventory");
+            System.out.println("[3] Shop");
+            System.out.println("[4] Save");
+            System.out.println("[5] Quit");
+            System.out.print("Choose an option: ");
             String cmd = sc.nextLine().trim();
             switch (cmd) {
                 case "1": enterDungeon(); break;
                 case "2": inventoryMenu(); break;
                 case "3": shopMenu(); break;
                 case "4": saveProgress(); break;
-                case "5": System.out.println("Thanks for playing!"); return;
+                case "5":
+                    System.out.println("\nThanks for playing!");
+                    return;
                 default: System.out.println("Invalid input."); break;
             }
         }
     }
 
     private void displayPlayerStatus() {
-        System.out.printf("\n%s (Lv.%d %s) HP: %d/%d | Mana: %d/%d | EXP: %d/%d | Gold: %d\n",
-            player.name, player.level, player.playerClass,
-            player.hp, player.maxHp(), player.mana, player.maxMana(),
-            player.exp, player.expToLevel, player.gold
-        );
+        System.out.println("\n==========[ Player Status ]==========");
+        System.out.printf("%s (Lv.%d %s)\n", player.name, player.level, player.playerClass);
+        System.out.printf("HP: %d/%d | Mana: %d/%d\n", player.hp, player.maxHp(), player.mana, player.maxMana());
+        System.out.printf("EXP: %d/%d | Gold: %d\n", player.exp, player.expToLevel, player.gold);
         System.out.println("Passive: " + player.passiveSkill);
+        System.out.println("=====================================");
     }
 
     private void inventoryMenu() {
+        System.out.println("\n==========[ Inventory ]==========");
         player.inventory.showInventory();
         if (!player.inventory.isEmpty()) {
-            System.out.println("Choose item number to use or 0 to cancel:");
+            System.out.print("Choose item number to use or 0 to cancel: ");
             String itemChoice = sc.nextLine().trim();
             try {
                 int itemIdx = Integer.parseInt(itemChoice) - 1;
                 if (itemIdx >= 0) player.useItem(itemIdx);
             } catch (NumberFormatException ignored) {}
         }
+        System.out.println("=================================\n");
     }
 
     private void shopMenu() {
         while (true) {
-            System.out.println("\n=== Shop ===  (Gold: " + player.gold + ")");
+            System.out.println("\n==========[ Shop ]==========");
+            System.out.println("Your Gold: " + player.gold);
             for (int i = 0; i < SHOP_ITEMS.length; i++) {
                 Item it = SHOP_ITEMS[i];
-                System.out.printf("%d. %s [%s] - %d gold\n    %s\n", i+1, it.name, it.rarity, it.shopPrice, it.description);
+                System.out.printf("[%d] %s [%s] - %d gold\n    %s\n", i+1, it.name, it.rarity, it.shopPrice, it.description);
             }
-            System.out.println("Enter item number to buy, or 0 to exit shop.");
+            System.out.println("[0] Exit Shop");
+            System.out.print("Enter item number to buy: ");
             String input = sc.nextLine().trim();
             if ("0".equals(input)) break;
             try {
@@ -216,7 +215,7 @@ public class Soagame {
                 return;
             }
         }
-        story.onBossDefeat(dungeonNumber);
+        story.bossDefeat(dungeonNumber, d.name);
         System.out.println("Dungeon cleared! Congratulations!");
     }
 
@@ -244,7 +243,7 @@ public class Soagame {
                 case "2":
                     player.inventory.showInventory();
                     if (!player.inventory.isEmpty()) {
-                        System.out.println("Choose item number to use or 0 to cancel:");
+                        System.out.print("Choose item number to use or 0 to cancel: ");
                         String itemChoice = sc.nextLine().trim();
                         try {
                             int itemIdx = Integer.parseInt(itemChoice) - 1;
@@ -299,7 +298,8 @@ public class Soagame {
                 int idx = (int) (Math.random() * player.inventory.size());
                 Item lost = player.inventory.getItem(idx);
                 player.inventory.removeItem(idx);
-                System.out.println("You lost your " + lost + "!");
+                if (lost != null)
+                    System.out.println("You lost your " + lost + "!");
             }
             if (player.level > 1 && Math.random() < 0.2) {
                 player.level--;
@@ -315,7 +315,8 @@ public class Soagame {
         for (Item.Rarity rarity : List.of(Item.Rarity.RARE, Item.Rarity.UNCOMMON, Item.Rarity.COMMON)) {
             if (roll < RARITY_DROP_CHANCE.get(rarity)) {
                 List<Item> candidates = new ArrayList<>();
-                for (Item item : ITEM_DROPS) if (item.rarity == rarity) candidates.add(item);
+                for (Item item : ITEM_DROPS)
+                    if (item.rarity == rarity) candidates.add(item);
                 if (!candidates.isEmpty())
                     return candidates.get(random.nextInt(candidates.size())).copy();
             }
@@ -323,33 +324,30 @@ public class Soagame {
         return null;
     }
 
-    // --- Save/Load using FileWriter/FileReader (no Serializable) ---
+    // --- Save/Load using FileWriter/Scanner ---
     public void saveProgress() {
-        try (FileWriter fw = new FileWriter("savegame.txt")) {
+        try (java.io.FileWriter fw = new java.io.FileWriter("savegame.txt")) {
             fw.write(player.name + "," + player.playerClass + "," + player.level + "," +
                      player.hp + "," + player.mana + "," + player.exp + "," +
                      player.expToLevel + "," + player.gold + "\n");
             fw.write("" + player.inventory.size() + "\n");
             for (int i = 0; i < player.inventory.size(); i++) {
                 Item item = player.inventory.getItem(i);
-                fw.write(item.name + "," + item.type + "," + item.value + "," +
-                         item.shopPrice + "," + item.rarity + "," +
-                         item.description.replace(",", ";") + "\n");
+                if (item != null) {
+                    fw.write(item.name + "," + item.type + "," + item.value + "," +
+                             item.shopPrice + "," + item.rarity + "," +
+                             item.description.replace(",", ";") + "\n");
+                }
             }
             System.out.println("Progress saved!");
-        } catch (IOException e) {
+        } catch (Exception e) {
             System.out.println("Failed to save progress: " + e.getMessage());
         }
     }
 
     public boolean loadProgress() {
-        try (FileReader fr = new FileReader("savegame.txt")) {
-            StringBuilder sb = new StringBuilder();
-            int c;
-            while ((c = fr.read()) != -1) sb.append((char) c);
-            String[] lines = sb.toString().split("\n");
-            if (lines.length < 2) throw new IOException("Corrupt save file.");
-            String[] stats = lines[0].split(",");
+        try (Scanner reader = new Scanner(new java.io.File("savegame.txt"))) {
+            String[] stats = reader.nextLine().split(",");
             String name = stats[0];
             String playerClass = stats[1];
             player = new Player(name, playerClass, story);
@@ -359,10 +357,10 @@ public class Soagame {
             player.exp = Integer.parseInt(stats[5]);
             player.expToLevel = Integer.parseInt(stats[6]);
             player.gold = Integer.parseInt(stats[7]);
-            int invSize = Integer.parseInt(lines[1].trim());
+            int invSize = Integer.parseInt(reader.nextLine().trim());
             player.inventory.clear();
             for (int i = 0; i < invSize; i++) {
-                String[] itemData = lines[2 + i].split(",", 6);
+                String[] itemData = reader.nextLine().split(",", 6);
                 String itemName = itemData[0];
                 Item.Type type = Item.Type.valueOf(itemData[1]);
                 int value = Integer.parseInt(itemData[2]);
